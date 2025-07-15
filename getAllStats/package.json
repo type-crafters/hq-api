@@ -1,0 +1,17 @@
+{
+    "name": "getallstats",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "node --test",
+        "start": "node index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "aws-sdk": "^2.1692.0"
+    }
+}
