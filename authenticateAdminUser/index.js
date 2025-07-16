@@ -38,13 +38,13 @@ export const handler = async (event) => {
         };
     }
 
-    const passwordsMatch = await bcrypt.compare(password, adminUser.password);
+    const passwordsMatch = await bcrypt.compare(password, user.password);
 
     if (passwordsMatch) {
         const token = jwt.sign({
-            id: adminUser.id,
-            email: adminUser.email,
-            role: adminUser.role
+            id: user.id,
+            email: user.email,
+            role: user.role
         },
             JWT_SECRET,
             { expiresIn: "1h" }
@@ -52,7 +52,11 @@ export const handler = async (event) => {
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ token })
+            headers: {
+                "Set-Cookie": `token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify("Login successful")
         };
     } else {
         return {
