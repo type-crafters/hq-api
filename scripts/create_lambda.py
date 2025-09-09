@@ -1,13 +1,39 @@
 import os
 import subprocess
 import re
-from typing import Literal
+from typing import TypedDict
 from .console import log, error, info
 
 tab = " " * 4
 
+class FileTemplate(TypedDict):
+    name: str
+    content: list[str]
 
-def lambda_function(name: str) -> dict[Literal['name', 'content'], str | list[str]]:
+def minor_version(package: str) -> tuple[str, str, str]:
+    output = subprocess.run(
+        ['pip', 'index', 'versions', package],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    if output.stderr:
+        raise ValueError(f"An error occured trying to get the version list for package '{package}'.")
+    
+    stdout = output.stdout
+
+    version = re.search(r"\(([^)]+)\)", stdout.splitlines()[0])
+
+    if not version:
+        raise ValueError(f"No correctly formatted version for package '{package}' was found.")
+    
+    semver = version.group(1).split('.')
+    major, minor, _ = semver
+
+    return (major, minor, '0')
+
+def lambda_function(name: str) -> FileTemplate:
     return {
         'name': 'function.py',
         'content': [
@@ -22,29 +48,17 @@ def lambda_function(name: str) -> dict[Literal['name', 'content'], str | list[st
         ],
     }
 
-def requirements_txt() -> dict[Literal['name', 'content'], str | list[str]]:
-    boto3_version = re.search(r"\(([^)]+)\)", subprocess.run(
-            ['pip', 'index', 'versions', 'boto3'],
-            capture_output=True,
-            text=True,
-            check=True
-        ).stdout.splitlines()[0]).group(1)
-    boto3_minor = boto3_version.split('.')
-    boto3_minor[2] = '0'
-    botocore_version = re.search(r"\(([^)]+)\)", subprocess.run(
-            ['pip', 'index', 'versions', 'botocore'],
-            capture_output=True,
-            text=True,
-            check=True
-        ).stdout.splitlines()[0]).group(1)
-    botocore_minor = botocore_version.split('.')
-    botocore_minor[2] = '0'
+def requirements_txt() -> FileTemplate:
+    boto3_minor = '.'.join(minor_version('boto3'))
+    botocore_minor = '.'.join(minor_version('botocore'))
+    pytest_minor = '.'.join(minor_version('pytest'))
 
     return {
         'name': 'requirements.txt',
         'content': [
-            f"boto3>={'.'.join(boto3_minor)}",
-            f"botocore>={'.'.join(botocore_minor)}"
+            f"boto3>={boto3_minor}",
+            f"botocore>={'.'.join(botocore_minor)}",
+            f"pytest>={'.'.join(pytest_minor)}"
         ]
     }
 
