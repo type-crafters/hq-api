@@ -9,7 +9,7 @@ def main():
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     # python manage.py lambda <name>
-    lambda_parser = subparsers.add_parser('lambda', help='Create a lambda function with the provided name')
+    lambda_parser = subparsers.add_parser('new', help='Create a new lambda function with the provided name')
     lambda_parser.add_argument('name', type=str, help='Name for the lambda command')
 
     # python manage.py package <name>

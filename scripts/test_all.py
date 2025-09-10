@@ -5,7 +5,6 @@ from .lib import log, error, info
 
 def test_all() -> None:
     for dir in [entry.name for entry in os.scandir(LAMBDA_PATH) if entry.is_dir()]:
-        log(f"Running tests for lambda function '{dir}'...")
         dir_path = os.path.abspath(os.path.join(LAMBDA_PATH, dir))
 
         is_lambda = "function.py" in [
@@ -15,6 +14,8 @@ def test_all() -> None:
         if not is_lambda:
             continue
 
+        log(f"Running tests for lambda function '{dir}'...")
+        
         try:
             result = subprocess.run(
                 ['pytest', '-v'],
