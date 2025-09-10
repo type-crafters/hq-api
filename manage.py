@@ -24,7 +24,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == 'lambda':
+    if args.command == 'new':
         create_lambda(args.name)
     elif args.command == 'test':
         test_all()
