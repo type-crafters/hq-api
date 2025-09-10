@@ -2,7 +2,7 @@ import os
 import subprocess
 import re
 from typing import TypedDict
-from .console import log, error, info
+from .lib import LAMBDA_PATH, log, error, info
 
 tab = " " * 4
 
@@ -57,24 +57,25 @@ def requirements_txt() -> FileTemplate:
         'name': 'requirements.txt',
         'content': [
             f"boto3>={boto3_minor}",
-            f"botocore>={'.'.join(botocore_minor)}",
-            f"pytest>={'.'.join(pytest_minor)}"
+            f"botocore>={botocore_minor}",
+            f"pytest>={pytest_minor}"
         ]
     }
 
 
 def create_lambda(name: str) -> None:
     log(f"Creating lambda function '{name}'...")
+    fn_path = os.path.abspath(os.path.join(LAMBDA_PATH, name))
     try:
-        os.makedirs(os.path.abspath(name))
-    except FileExistsError:
+        os.makedirs(fn_path, exist_ok=False)
+    except OSError:
         error(f"Error: directory '{name}' already exists")
         return
     else:
         req = requirements_txt()
-        with open(os.path.join(name, req['name']), 'w', encoding='utf-8') as file:
+        with open(os.path.join(fn_path, req['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(req['content']))
         fn = lambda_function(name)
-        with open(os.path.join(name, fn['name']), 'w', encoding='utf-8') as file:
+        with open(os.path.join(fn_path, fn['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(fn['content']))
         info(f"Lambda function '{name}' successfully created!")

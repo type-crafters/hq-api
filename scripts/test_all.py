@@ -1,7 +1,7 @@
 import os
 import subprocess
 from .lib import LAMBDA_PATH
-from .console import log, error, info
+from .lib import log, error, info
 
 def test_all() -> None:
     for dir in [entry.name for entry in os.scandir(LAMBDA_PATH) if entry.is_dir()]:
