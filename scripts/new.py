@@ -2,7 +2,7 @@ import os
 import subprocess
 import re
 from typing import TypedDict
-from .lib import LAMBDA_FILENAME, LAMBDA_HANDLER, LAMBDA_PATH, log, error, info
+from .lib import LAMBDA_FILENAME, LAMBDA_HANDLER, LAMBDA_PATH, log, error, info, try_create_venv
 
 tab = " " * 4
 
@@ -17,9 +17,6 @@ def minor_version(package: str) -> tuple[str, str, str]:
         text=True,
         check=True
     )
-
-    if output.stderr:
-        raise ValueError(f"An error occured trying to get the version list for package '{package}'.")
     
     stdout = output.stdout
 
@@ -62,8 +59,7 @@ def requirements_txt() -> FileTemplate:
         ]
     }
 
-
-def create_lambda(name: str) -> None:
+def new(name: str) -> None:
     log(f"Creating lambda function '{name}'...")
     fn_path = os.path.abspath(os.path.join(LAMBDA_PATH, name))
     try:
@@ -75,7 +71,13 @@ def create_lambda(name: str) -> None:
         req = requirements_txt()
         with open(os.path.join(fn_path, req['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(req['content']))
+
         fn = lambda_function(name)
         with open(os.path.join(fn_path, fn['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(fn['content']))
+        
+        try_create_venv(at=fn_path)
+
         info(f"Lambda function '{name}' successfully created!")
+
+
