@@ -3,7 +3,7 @@ import sys
 import subprocess
 import tempfile
 import zipfile
-from .lib import LAMBDA_PATH, DIST_PATH, log, info, error
+from .lib import LAMBDA_FILENAME, LAMBDA_PATH, DIST_PATH, log, info, error
 
 
 def package(name):
@@ -11,11 +11,11 @@ def package(name):
     dir_path = os.path.abspath(os.path.join(LAMBDA_PATH, name))
     os.makedirs(DIST_PATH, exist_ok=True)
 
-    fn_path = os.path.join(dir_path, 'function.py')
+    fn_path = os.path.join(dir_path, LAMBDA_FILENAME)
     req_path = os.path.join(dir_path, 'requirements.txt')
 
     if not os.path.exists(fn_path):
-        error(f"Error: Provided path {dir_path} does not contain a 'function.py' file.")
+        error(f"Error: Provided path {dir_path} does not contain a '{LAMBDA_FILENAME}' file.")
         return
 
     with tempfile.TemporaryDirectory() as build_dir:
@@ -26,12 +26,12 @@ def package(name):
             subprocess.run(
                 [
                     sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    "-r",
+                    '-m',
+                    'pip',
+                    'install',
+                    '-r',
                     req_path,
-                    "-t",
+                    '-t',
                     build_path,
                 ],
                 capture_output=True,
@@ -40,9 +40,7 @@ def package(name):
             log('Packages installed!')
             
         log('Copying files...')
-        with open(fn_path, 'rb') as source, open(
-            os.path.join(build_path, 'function.py'), 'wb'
-        ) as dest:
+        with open(fn_path, 'rb') as source, open(os.path.join(build_path, LAMBDA_FILENAME), 'wb') as dest:
             dest.write(source.read())
 
         zip_path = os.path.join(DIST_PATH, f"{name}.zip")

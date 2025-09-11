@@ -2,7 +2,7 @@ import os
 import subprocess
 import re
 from typing import TypedDict
-from .lib import LAMBDA_PATH, log, error, info
+from .lib import LAMBDA_FILENAME, LAMBDA_HANDLER, LAMBDA_PATH, log, error, info
 
 tab = " " * 4
 
@@ -35,13 +35,13 @@ def minor_version(package: str) -> tuple[str, str, str]:
 
 def lambda_function(name: str) -> FileTemplate:
     return {
-        'name': 'lambda_function.py',
+        'name': LAMBDA_FILENAME,
         'content': [
-            "import json",
-            "",
+            'import json',
+            '',
             f"# Lambda handler '{name}'",
-            "def lambda_handler(event, context):",
-            tab + "return {",
+            f"def {LAMBDA_HANDLER}(event, context):",
+            tab + 'return {',
             tab * 2 + "'statusCode': 200,",
             tab * 2 + "'message': json.dumps('Hello from lambda!')",
             tab + "}",
