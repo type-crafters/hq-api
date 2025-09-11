@@ -40,7 +40,7 @@ def lambda_function(name: str) -> FileTemplate:
             "import json",
             "",
             f"# Lambda handler '{name}'",
-            "def handler(event, context):",
+            "def lambda_handler(event, context):",
             tab + "return {",
             tab * 2 + "'statusCode': 200,",
             tab * 2 + "'message': json.dumps('Hello from lambda!')",
