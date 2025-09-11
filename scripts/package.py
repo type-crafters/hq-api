@@ -6,16 +6,16 @@ import zipfile
 from .lib import LAMBDA_FILENAME, LAMBDA_PATH, DIST_PATH, log, info, error
 
 
-def package(name):
-    log(f"Packaging lambda function '{name}' into a .zip file...")
-    dir_path = os.path.abspath(os.path.join(LAMBDA_PATH, name))
+def package(dirpath: str) -> None:
+    dirname = os.path.basename(dirpath)
+    log(f"Packaging lambda function '{dirname}' into a .zip file...")
     os.makedirs(DIST_PATH, exist_ok=True)
 
-    fn_path = os.path.join(dir_path, LAMBDA_FILENAME)
-    req_path = os.path.join(dir_path, 'requirements.txt')
+    fn_path = os.path.join(dirpath, LAMBDA_FILENAME)
+    req_path = os.path.join(dirpath, 'requirements.txt')
 
     if not os.path.exists(fn_path):
-        error(f"Error: Provided path {dir_path} does not contain a '{LAMBDA_FILENAME}' file.")
+        error(f"Error: Provided path {dirpath} does not contain a '{LAMBDA_FILENAME}' file.")
         return
 
     with tempfile.TemporaryDirectory() as build_dir:
@@ -43,7 +43,7 @@ def package(name):
         with open(fn_path, 'rb') as source, open(os.path.join(build_path, LAMBDA_FILENAME), 'wb') as dest:
             dest.write(source.read())
 
-        zip_path = os.path.join(DIST_PATH, f"{name}.zip")
+        zip_path = os.path.join(DIST_PATH, f"{dirname}.zip")
 
         with zipfile.ZipFile(os.path.join(zip_path), 'w', zipfile.ZIP_DEFLATED) as zip:
             for root, _, files in os.walk(build_path):
@@ -52,4 +52,4 @@ def package(name):
                     arcname = os.path.relpath(file_path, build_path)
                     zip.write(file_path, arcname)
         log('Files copied!') 
-        info(f"Lambda function '{name}' successfully packed into {os.path.relpath(zip_path, os.path.dirname(DIST_PATH)).replace("\\", "/")}!")
+        info(f"Lambda function '{dirname}' successfully packed into {os.path.relpath(zip_path, os.path.dirname(DIST_PATH)).replace("\\", "/")}!")

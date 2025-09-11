@@ -1,5 +1,6 @@
 import argparse
-from scripts.lib import apply_to_all, error
+import os
+from scripts.lib import LAMBDA_PATH, apply_to_all, error
 from scripts.new import new
 from scripts.restore import restore
 from scripts.test import test
@@ -33,12 +34,12 @@ def main():
     args = parser.parse_args()
 
     if args.command == 'new':
-        new(args.name)
+        new(os.path.abspath(os.path.join(LAMBDA_PATH, args.name)))
     elif args.command == 'test':
         if args.all:
             apply_to_all(test)
         elif args.name: 
-            test(args.name)
+            test(os.path.abspath(os.path.join(LAMBDA_PATH, args.name)))
         else:
             error('Please provide either the dir name or the --all flag.')
             return
@@ -46,7 +47,7 @@ def main():
         if args.all:
             apply_to_all(restore)
         elif args.name: 
-            restore(args.name)
+            restore(os.path.abspath(os.path.join(LAMBDA_PATH, args.name)))
         else:
             error('Please provide either the dir name or the --all flag.')
             return
@@ -54,7 +55,7 @@ def main():
         if args.all:
             apply_to_all(package)
         elif args.name: 
-            package(args.name)
+            package(os.path.abspath(os.path.join(LAMBDA_PATH, args.name)))
         else:
             error('Please provide either the dir name or the --all flag.')
             return

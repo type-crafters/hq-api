@@ -25,13 +25,13 @@ def try_create_venv(at='./'):
 def apply_to_all(fn: Callable[[str], Any]):
     for dir in [entry.name for entry in os.scandir(LAMBDA_PATH) if entry.is_dir()]:
 
-        dir_path = os.path.abspath(os.path.join(LAMBDA_PATH, dir))
+        dirpath = os.path.abspath(os.path.join(LAMBDA_PATH, dir))
 
         is_lambda = 'function.py' in [
-            entry.name for entry in os.scandir(dir_path) if entry.is_file()
+            entry.name for entry in os.scandir(dirpath) if entry.is_file()
         ]
 
         if not is_lambda:
             continue
 
-        fn(dir_path)
+        fn(dirpath)
