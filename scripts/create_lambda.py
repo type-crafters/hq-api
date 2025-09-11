@@ -35,7 +35,7 @@ def minor_version(package: str) -> tuple[str, str, str]:
 
 def lambda_function(name: str) -> FileTemplate:
     return {
-        'name': 'function.py',
+        'name': 'lambda_function.py',
         'content': [
             "import json",
             "",
