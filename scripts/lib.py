@@ -5,6 +5,7 @@ import venv
 
 LAMBDA_PATH = path.abspath(path.join(path.dirname(__file__), '..', 'lambda'))
 LAMBDA_FILENAME = 'lambda_function.py'
+VENV_NAME = '.venv'
 LAMBDA_HANDLER = 'lambda_handler'
 DIST_PATH = path.abspath(path.join(path.dirname(__file__), '..', 'dist'))
 
@@ -14,7 +15,7 @@ warn = lambda *values, end='\n', sep=' ': print('\033[33m', *values, '\033[0m', 
 error = lambda *values, end='\n', sep=' ': print('\033[31m', *values, '\033[0m', end=end, sep=sep)
 
 def try_create_venv(at='./'):
-    venv_path = os.path.join(os.path.abspath(at), '.venv')
+    venv_path = os.path.join(os.path.abspath(at), VENV_NAME)
     rel_venv_path = os.path.relpath(venv_path, LAMBDA_PATH).replace('\\', '/')
     if not os.path.exists(venv_path):
         log(f"Creating virtual environment at {rel_venv_path}...")
@@ -31,7 +32,5 @@ def apply_to_all(fn: Callable[[str], Any]):
             entry.name for entry in os.scandir(dirpath) if entry.is_file()
         ]
 
-        if not is_lambda:
-            continue
-
-        fn(dirpath)
+        if is_lambda:
+            fn(dirpath)

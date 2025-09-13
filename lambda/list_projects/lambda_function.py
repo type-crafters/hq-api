@@ -1,6 +1,6 @@
+import boto3
 import json
 import os
-import boto3
 
 region_name = 'us-east-1'
 bucket_name = os.environ['BUCKET_NAME']

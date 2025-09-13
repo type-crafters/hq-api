@@ -59,24 +59,24 @@ def requirements_txt() -> FileTemplate:
         ]
     }
 
-def new(name: str) -> None:
+def new(dirpath: str) -> None:
+    name = os.path.basename(dirpath)
     log(f"Creating lambda function '{name}'...")
-    fn_path = os.path.abspath(os.path.join(LAMBDA_PATH, name))
     try:
-        os.makedirs(fn_path, exist_ok=False)
+        os.makedirs(dirpath, exist_ok=False)
     except OSError:
-        error(f"Error: directory '{name}' already exists")
+        error(f"Error: directory '{dirpath}' already exists")
         return
     else:
         req = requirements_txt()
-        with open(os.path.join(fn_path, req['name']), 'w', encoding='utf-8') as file:
+        with open(os.path.join(dirpath, req['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(req['content']))
 
         fn = lambda_function(name)
-        with open(os.path.join(fn_path, fn['name']), 'w', encoding='utf-8') as file:
+        with open(os.path.join(dirpath, fn['name']), 'w', encoding='utf-8') as file:
             file.write('\n'.join(fn['content']))
         
-        try_create_venv(at=fn_path)
+        try_create_venv(at=dirpath)
 
         info(f"Lambda function '{name}' successfully created!")
 

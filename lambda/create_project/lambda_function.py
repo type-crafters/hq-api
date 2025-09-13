@@ -1,11 +1,11 @@
 import base64
+import boto3
 import io
 import json
 import os
 from typing import Any
-from uuid import uuid4
-import boto3
 from multipart import MultipartParser
+from uuid import uuid4
 
 region_name = 'us-east-1'
 bucket_name = os.environ['BUCKET_NAME']
