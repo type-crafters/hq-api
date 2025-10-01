@@ -41,9 +41,11 @@ def lambda_handler(event, context):
             data['id'] = partition_key
             initial_password = ''.join(secrets.choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(16))
 
+            hashed_pw = bcrypt.hashpw(initial_password.encode(), bcrypt.gensalt()).decode()
+            data['password'] = hashed_pw
             table.put_item(Item={
                 **data, 
-                'password': bcrypt.hashpw(initial_password.encode(), bcrypt.gensalt()).decode()
+                'initialPassword': hashed_pw
             })
 
             message = MIMEMultipart('alternative')
