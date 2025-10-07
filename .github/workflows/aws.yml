@@ -340,7 +340,6 @@ jobs:
           aws lambda update-function-code \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
             --zip-file fileb://lambda-deployment.zip \
-            --description "Lambda: ${{ matrix.lambda }} | Env: ${{ needs.detect-changes.outputs.environment }} | Commit: ${{ github.sha }}"
           
           echo "✅ Lambda code updated: ${{ steps.config.outputs.lambda_name }}"
 
@@ -358,7 +357,7 @@ jobs:
             --function-name "${{ steps.config.outputs.lambda_name }}" \
             --timeout 30 \
             --memory-size 256 \
-            --environment "Variables={${{ steps.load-env.outputs.env_vars }}}"
+            --environment "Variables={${{ steps.build-env.outputs.env_vars }}}"
           
           echo "✅ Lambda configuration updated: ${{ steps.config.outputs.lambda_name }}"
 
@@ -373,7 +372,7 @@ jobs:
         run: |
           VERSION=$(aws lambda publish-version \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
-            --description "Deploy ${{ matrix.lambda }} (${{ steps.config.outputs.environment }}) - ${{ github.sha }}" \
+            --description "Deploy ${{ matrix.lambda }} ({{ needs.detect-changes.outputs.environment }}) - ${{ github.sha }}" \
             --query 'Version' \
             --output text)
           
