@@ -14,7 +14,7 @@ table = db.Table(table_name)
 # Lambda handler 'delete_project'
 def lambda_handler(event, context):
     try:
-        print("This is a change made by the CI/CD pipeline")
+        print("This is a change made by the CI/CD pipeline.....")
         try:
             project_id = event['pathParameters']['id']
         except KeyError:

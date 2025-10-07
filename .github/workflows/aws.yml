@@ -330,7 +330,7 @@ jobs:
             --timeout 30 \
             --memory-size 256 \
             --environment "Variables={${{ steps.build-env.outputs.env_vars }}}" \
-            --description "Lambda: ${{ matrix.lambda }} | Env: ${{ needs.detect-changes.outputs.environment }} | Commit: ${{ github.sha }}"
+            --description "Lambda: ${{ matrix.lambda }} | Env: ${{ needs.detect-changes.outputs.environment }}"
           
           echo "✅ Lambda created: ${{ steps.config.outputs.lambda_name }}"
 
@@ -387,13 +387,13 @@ jobs:
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ ${{ steps.config.outputs.lambda_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | \`${{ steps.config.outputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | \`${{ needs.detect-changes.outputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | \`${{ steps.publish.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Runtime** | \`python${{ env.LAMBDA_RUNTIME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Path** | \`${{ steps.config.outputs.lambda_path }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
-comment-on-pr:
+  comment-on-pr:
     needs: [detect-changes, deploy-lambdas]
     if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
