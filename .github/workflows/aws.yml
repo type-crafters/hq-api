@@ -396,7 +396,7 @@ jobs:
 
   comment-on-pr:
     needs: [detect-changes, deploy-lambdas]
-    if: github.event_name == 'pull_request_target' && needs.detect-changes.outputs.has_changes == 'true'
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     
     steps:
