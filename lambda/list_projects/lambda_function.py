@@ -13,6 +13,7 @@ table = db.Table(table_name)
 # Lambda handler 'list_projects'
 def lambda_handler(event, context):
     try:
+        print("This is a change made by the CI/CD pipeline...")
         res = table.scan()
         items = res.get('Items', [])
         if items:
