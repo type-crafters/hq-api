@@ -395,117 +395,117 @@ jobs:
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
   comment-on-pr:
-  needs: [detect-changes, deploy-lambdas]
-  if: always() && github.event_name == 'pull_request_target' && needs.detect-changes.outputs.has_changes == 'true'
-  runs-on: ubuntu-latest
-  
-  steps:
-    - name: Get deployment results
-      id: results
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const jobs = await github.rest.actions.listJobsForWorkflowRun({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            run_id: context.runId,
-          });
-          
-          // Filtrar solo los jobs de deploy-lambdas
-          const deployJobs = jobs.data.jobs.filter(job => 
-            job.name.startsWith('deploy-lambdas')
-          );
-          
-          const results = {};
-          deployJobs.forEach(job => {
-            // Extraer el nombre de la lambda del nombre del job
-            // Ejemplo: "deploy-lambdas (create_project)" -> "create_project"
-            const match = job.name.match(/deploy-lambdas \((.+?)\)/);
-            if (match) {
-              const lambdaName = match[1];
-              results[lambdaName] = {
-                status: job.conclusion,
-                url: job.html_url
-              };
-            }
-          });
-          
-          return results;
-
-    - name: Comment deployment results with details
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const lambdas = JSON.parse('${{ needs.detect-changes.outputs.lambdas }}');
-          const environment = '${{ needs.detect-changes.outputs.environment }}';
-          const emoji = environment === 'production' ? '🚀' : '🔧';
-          const envUpper = environment.toUpperCase();
-          const results = ${{ steps.results.outputs.result }};
-          
-          let successCount = 0;
-          let failureCount = 0;
-          
-          lambdas.forEach(lambda => {
-            if (results[lambda]?.status === 'success') {
-              successCount++;
-            } else if (results[lambda]?.status === 'failure') {
-              failureCount++;
-            }
-          });
-          
-          let message = `## ${emoji} Lambda Deployments - ${envUpper}\n\n`;
-          
-          if (failureCount === 0) {
-            message += `✅ Successfully deployed **${successCount}/${lambdas.length}** function(s) to **${envUpper}**\n\n`;
-          } else {
-            message += `⚠️ Deployed **${successCount}/${lambdas.length}** function(s) to **${envUpper}** (${failureCount} failed)\n\n`;
-          }
-          
-          message += `### Deployment Status\n\n`;
-          
-          const suffix = environment === 'development' ? '-dev' : '';
-          lambdas.forEach(lambda => {
-            const normalized = lambda.replace(/_/g, '-');
-            const lambdaName = `hq-api-${normalized}${suffix}`;
-            const result = results[lambda];
+    needs: [detect-changes, deploy-lambdas]
+    if: github.event_name == 'pull_request_target' && needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get deployment results
+        id: results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
             
-            let statusEmoji = '⏸️';
-            let statusText = 'Unknown';
+            // Filtrar solo los jobs de deploy-lambdas
+            const deployJobs = jobs.data.jobs.filter(job => 
+              job.name.startsWith('deploy-lambdas')
+            );
             
-            if (result) {
-              if (result.status === 'success') {
-                statusEmoji = '✅';
-                statusText = 'Success';
-              } else if (result.status === 'failure') {
-                statusEmoji = '❌';
-                statusText = 'Failed';
-              } else if (result.status === 'cancelled') {
-                statusEmoji = '⏸️';
-                statusText = 'Cancelled';
+            const results = {};
+            deployJobs.forEach(job => {
+              // Extraer el nombre de la lambda del nombre del job
+              // Ejemplo: "deploy-lambdas (create_project)" -> "create_project"
+              const match = job.name.match(/deploy-lambdas \((.+?)\)/);
+              if (match) {
+                const lambdaName = match[1];
+                results[lambdaName] = {
+                  status: job.conclusion,
+                  url: job.html_url
+                };
               }
-              
-              message += `- ${statusEmoji} [\`${lambdaName}\`](${result.url}) - ${statusText}\n`;
-            } else {
-              message += `- ${statusEmoji} \`${lambdaName}\` - ${statusText}\n`;
-            }
-          });
+            });
+            
+            return results;
 
-          message += `\n### Deployment Details\n\n`;
-          message += `| Property | Value |\n`;
-          message += `|----------|-------|\n`;
-          message += `| Environment | \`${environment}\` |\n`;
-          message += `| Region | \`${{ env.AWS_REGION }}\` |\n`;
-          message += `| Commit | \`${{ github.sha }}\` |\n`;
-          message += `| Time | ${new Date().toUTCString()} |\n`;
-          message += `| Success Rate | ${successCount}/${lambdas.length} (${Math.round(successCount/lambdas.length*100)}%) |\n`;
-          
-          if (failureCount > 0) {
-            message += `\n> ⚠️ **Note:** ${failureCount} deployment(s) failed. Click on the failed items above to view detailed logs.`;
-          }
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: message
-          });
+      - name: Comment deployment results with details
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const lambdas = JSON.parse('${{ needs.detect-changes.outputs.lambdas }}');
+            const environment = '${{ needs.detect-changes.outputs.environment }}';
+            const emoji = environment === 'production' ? '🚀' : '🔧';
+            const envUpper = environment.toUpperCase();
+            const results = ${{ steps.results.outputs.result }};
+            
+            let successCount = 0;
+            let failureCount = 0;
+            
+            lambdas.forEach(lambda => {
+              if (results[lambda]?.status === 'success') {
+                successCount++;
+              } else if (results[lambda]?.status === 'failure') {
+                failureCount++;
+              }
+            });
+            
+            let message = `## ${emoji} Lambda Deployments - ${envUpper}\n\n`;
+            
+            if (failureCount === 0) {
+              message += `✅ Successfully deployed **${successCount}/${lambdas.length}** function(s) to **${envUpper}**\n\n`;
+            } else {
+              message += `⚠️ Deployed **${successCount}/${lambdas.length}** function(s) to **${envUpper}** (${failureCount} failed)\n\n`;
+            }
+            
+            message += `### Deployment Status\n\n`;
+            
+            const suffix = environment === 'development' ? '-dev' : '';
+            lambdas.forEach(lambda => {
+              const normalized = lambda.replace(/_/g, '-');
+              const lambdaName = `hq-api-${normalized}${suffix}`;
+              const result = results[lambda];
+              
+              let statusEmoji = '⏸️';
+              let statusText = 'Unknown';
+              
+              if (result) {
+                if (result.status === 'success') {
+                  statusEmoji = '✅';
+                  statusText = 'Success';
+                } else if (result.status === 'failure') {
+                  statusEmoji = '❌';
+                  statusText = 'Failed';
+                } else if (result.status === 'cancelled') {
+                  statusEmoji = '⏸️';
+                  statusText = 'Cancelled';
+                }
+                
+                message += `- ${statusEmoji} [\`${lambdaName}\`](${result.url}) - ${statusText}\n`;
+              } else {
+                message += `- ${statusEmoji} \`${lambdaName}\` - ${statusText}\n`;
+              }
+            });
+
+            message += `\n### Deployment Details\n\n`;
+            message += `| Property | Value |\n`;
+            message += `|----------|-------|\n`;
+            message += `| Environment | \`${environment}\` |\n`;
+            message += `| Region | \`${{ env.AWS_REGION }}\` |\n`;
+            message += `| Commit | \`${{ github.sha }}\` |\n`;
+            message += `| Time | ${new Date().toUTCString()} |\n`;
+            message += `| Success Rate | ${successCount}/${lambdas.length} (${Math.round(successCount/lambdas.length*100)}%) |\n`;
+            
+            if (failureCount > 0) {
+              message += `\n> ⚠️ **Note:** ${failureCount} deployment(s) failed. Click on the failed items above to view detailed logs.`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
