@@ -393,39 +393,39 @@ jobs:
           echo "| **Path** | \`${{ steps.config.outputs.lambda_path }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
-  comment-on-pr:
-    needs: [detect-changes, deploy-lambdas]
-    if: github.event_name == 'push' || github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+  # comment-on-pr:
+  #   needs: [detect-changes, deploy-lambdas]
+  #   if: github.event_name == 'push' || github.event.pull_request.merged == true
+  #   runs-on: ubuntu-latest
     
-    steps:
-      - name: Comment deployment results
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const lambdas = JSON.parse('${{ needs.detect-changes.outputs.lambdas }}');
-            const environment = '${{ needs.detect-changes.outputs.environment }}';
-            const emoji = environment === 'production' ? '🚀' : '🔧';
-            const envUpper = environment.toUpperCase();
+  #   steps:
+  #     - name: Comment deployment results
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const lambdas = JSON.parse('${{ needs.detect-changes.outputs.lambdas }}');
+  #           const environment = '${{ needs.detect-changes.outputs.environment }}';
+  #           const emoji = environment === 'production' ? '🚀' : '🔧';
+  #           const envUpper = environment.toUpperCase();
             
-            let message = `## ${emoji} Lambda Deployments - ${envUpper}\n\n`;
-            message += `Successfully deployed **${lambdas.length}** function(s) to **${envUpper}**:\n\n`;
+  #           let message = `## ${emoji} Lambda Deployments - ${envUpper}\n\n`;
+  #           message += `Successfully deployed **${lambdas.length}** function(s) to **${envUpper}**:\n\n`;
             
-            const suffix = environment === 'development' ? '-dev' : '';
-            lambdas.forEach(lambda => {
-              const normalized = lambda.replace(/_/g, '-');
-              message += `- ✅ \`hq-api-${normalized}${suffix}\`\n`;
-            });
+  #           const suffix = environment === 'development' ? '-dev' : '';
+  #           lambdas.forEach(lambda => {
+  #             const normalized = lambda.replace(/_/g, '-');
+  #             message += `- ✅ \`hq-api-${normalized}${suffix}\`\n`;
+  #           });
 
-            message += `\n**Deployment Details:**\n`;
-            message += `- 🌍 **Environment:** \`${environment}\`\n`;
-            message += `- 📍 **Region:** \`${{ env.AWS_REGION }}\`\n`;
-            message += `- 🔖 **Commit:** \`${{ github.sha }}\`\n`;
-            message += `- ⏰ **Time:** ${new Date().toUTCString()}\n`;
+  #           message += `\n**Deployment Details:**\n`;
+  #           message += `- 🌍 **Environment:** \`${environment}\`\n`;
+  #           message += `- 📍 **Region:** \`${{ env.AWS_REGION }}\`\n`;
+  #           message += `- 🔖 **Commit:** \`${{ github.sha }}\`\n`;
+  #           message += `- ⏰ **Time:** ${new Date().toUTCString()}\n`;
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
+  #           github.rest.issues.createComment({
+  #             issue_number: context.issue.number,
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             body: message
+  #           });
