@@ -279,45 +279,43 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Load environment variables from file
-        id: load-env
+      # ⬇️ NUEVO: Construir variables de entorno desde GitHub Environment
+      - name: Build environment variables
+        id: build-env
         run: |
-          LAMBDA_PATH="${{ steps.config.outputs.lambda_path }}"
           ENV="${{ needs.detect-changes.outputs.environment }}"
           
-          # Select the correct .env file based on the environment
-          if [ "$ENV" == "production" ]; then
-            ENV_FILE="$LAMBDA_PATH/.env.production"
-          else
-            ENV_FILE="$LAMBDA_PATH/.env.dev"
+          # Base vars
+          ENV_VARS="ENV=$ENV"
+          
+          # Add environment vars Environments → [development|production]
+          if [ -n "${{ vars.TABLE_NAME }}" ]; then
+            ENV_VARS="${ENV_VARS},TABLE_NAME=${{ vars.TABLE_NAME }}"
           fi
           
-          echo "Looking for: $ENV_FILE"
-          
-          if [ -f "$ENV_FILE" ]; then
-            # Read the .env file, ignore comments and empty lines, convert new lines to commas
-            ENV_VARS=$(cat "$ENV_FILE" | grep -v '^#' | grep -v '^$' | tr '\n' ',' | sed 's/,$//')
-            
-            # Add the ENV variable to the list
-            ENV_VARS="ENV=$ENV,${ENV_VARS}"
-            
-            # # Procesar secrets si el archivo los menciona
-            # if grep -q "APP_PASSWORD" "$ENV_FILE"; then
-            #   ENV_VARS="${ENV_VARS},APP_PASSWORD=${{ secrets.EMAIL_APP_PASSWORD }}"
-            # fi
-            
-            echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
-            echo "has_env=true" >> $GITHUB_OUTPUT
-            echo "Loaded environment variables from $ENV_FILE"
-            echo "Variables: $ENV_VARS"
-          else
-            # If file doesn't exist, finish deployment
-            # ENV_VARS="ENV=$ENV"
-            echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
-            echo "has_env=true" >> $GITHUB_OUTPUT
-            echo "No $ENV_FILE found, exiting process"
-            exit 1
+          if [ -n "${{ vars.BUCKET_NAME }}" ]; then
+            ENV_VARS="${ENV_VARS},BUCKET_NAME=${{ vars.BUCKET_NAME }}"
           fi
+          
+          if [ -n "${{ vars.EMAIL_ADDRESS }}" ]; then
+            ENV_VARS="${ENV_VARS},EMAIL_ADDRESS=${{ vars.EMAIL_ADDRESS }}"
+          fi
+          
+          # if [ -n "${{ vars.LOG_LEVEL }}" ]; then
+          #   ENV_VARS="${ENV_VARS},LOG_LEVEL=${{ vars.LOG_LEVEL }}"
+          # fi
+          
+          # Add secrets
+          if [ -n "${{ secrets.APP_PASSWORD }}" ]; then
+            ENV_VARS="${ENV_VARS},APP_PASSWORD=${{ secrets.APP_PASSWORD }}"
+          fi
+          
+          # if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
+          #   ENV_VARS="${ENV_VARS},DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+          # fi
+          
+          echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
+          echo "Environment variables built: $ENV_VARS"
 
       - name: Create Lambda function
         if: steps.check-lambda.outputs.exists == 'false'
