@@ -283,7 +283,7 @@ jobs:
         id: load-env
         run: |
           LAMBDA_PATH="${{ steps.config.outputs.lambda_path }}"
-          ENV="${{ steps.config.outputs.environment }}"
+          ENV="${{ needs.detect-changes.outputs.environment }}"
           
           # Select the correct .env file based on the environment
           if [ "$ENV" == "production" ]; then
@@ -311,11 +311,12 @@ jobs:
             echo "Loaded environment variables from $ENV_FILE"
             echo "Variables: $ENV_VARS"
           else
-            # If file doesn't exist, just set the ENV variable
-            ENV_VARS="ENV=$ENV"
+            # If file doesn't exist, finish deployment
+            # ENV_VARS="ENV=$ENV"
             echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
             echo "has_env=true" >> $GITHUB_OUTPUT
-            echo "No $ENV_FILE found, using default: ENV=$ENV"
+            echo "No $ENV_FILE found, exiting process"
+            exit 1
           fi
 
       - name: Create Lambda function
