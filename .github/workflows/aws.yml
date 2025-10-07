@@ -19,7 +19,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  AWS_ROLE_ARN: arn:aws:iam::657506130101:role/GitHubActionsLambdaDeployer
+  AWS_ROLE_ARN: arn:aws:iam::657506130101:role/GithubActionsLambdaDeployer
   LAMBDA_BASE_PATH: lambda
   LAMBDA_RUNTIME: 3.13
   LAMBDA_HANDLER: lambda_function.lambda_handler
