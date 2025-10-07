@@ -239,7 +239,7 @@ jobs:
             --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
           
           echo "Waiting role propagation..."
-          sleep 15
+          sleep 50
 
           # Retry fetching the role ARN a few times in case of eventual consistency issues
           for i in {1..5}; do
@@ -279,7 +279,6 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      # ⬇️ NUEVO: Construir variables de entorno desde GitHub Environment
       - name: Build environment variables
         id: build-env
         run: |
@@ -340,7 +339,8 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
-            --zip-file fileb://lambda-deployment.zip
+            --zip-file fileb://lambda-deployment.zip \
+            --description "Lambda: ${{ matrix.lambda }} | Env: ${{ needs.detect-changes.outputs.environment }} | Commit: ${{ github.sha }}"
           
           echo "✅ Lambda code updated: ${{ steps.config.outputs.lambda_name }}"
 
