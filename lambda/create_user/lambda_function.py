@@ -22,7 +22,6 @@ table = db.Table(table_name)
 # Lambda handler 'create_user'
 def lambda_handler(event, context):
     try:
-        print("This is a change made by the CI/CD pipeline.....")
         body = json.loads(event['body'])
         data = {}
         try:

@@ -288,8 +288,16 @@ jobs:
           ENV_VARS="ENV=$ENV"
           
           # Add environment vars Environments → [development|production]
-          if [ -n "${{ vars.TABLE_NAME }}" ]; then
-            ENV_VARS="${ENV_VARS},TABLE_NAME=${{ vars.TABLE_NAME }}"
+          if [ -n "${{ vars.PROJECTS_TABLE_NAME }}" ]; then
+            ENV_VARS="${ENV_VARS},PROJECTS_TABLE_NAME=${{ vars.PROJECTS_TABLE_NAME }}"
+          fi
+
+          if [ -n "${{ vars.MESSAGES_TABLE_NAME }}" ]; then
+            ENV_VARS="${ENV_VARS},MESSAGES_TABLE_NAME=${{ vars.MESSAGES_TABLE_NAME }}"
+          fi
+
+          if [ -n "${{ vars.ADMIN_USERS_TABLE_NAME }}" ]; then
+            ENV_VARS="${ENV_VARS},ADMIN_USERS_TABLE_NAME=${{ vars.ADMIN_USERS_TABLE_NAME }}"
           fi
           
           if [ -n "${{ vars.BUCKET_NAME }}" ]; then

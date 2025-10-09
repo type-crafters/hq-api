@@ -18,7 +18,6 @@ table = db.Table(table_name)
 # Lambda handler 'create_project'
 def lambda_handler(event: dict[str, Any], context):
     try:
-        print("This is a change made by the CI/CD pipeline.....")
         body = event['body']
 
         if event.get('isBase64Encoded', False):
