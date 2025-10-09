@@ -4,7 +4,7 @@ import os
 
 region_name = 'us-east-1'
 bucket_name = os.environ['BUCKET_NAME']
-table_name = os.environ['TABLE_NAME']
+table_name = os.environ['PROJECTS_TABLE_NAME']
 
 s3 = boto3.client('s3', region_name=region_name)
 db = boto3.resource('dynamodb', region_name=region_name)

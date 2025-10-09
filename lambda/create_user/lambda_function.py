@@ -14,7 +14,7 @@ from uuid import uuid4
 region_name = 'us-east-1'
 email_address = os.environ['EMAIL_ADDRESS']
 app_password = os.environ['APP_PASSWORD']
-table_name = os.environ['TABLE_NAME']
+table_name = os.environ['ADMIN_USER_TABLE_NAME']
 
 db = boto3.resource('dynamodb', region_name=region_name)
 table = db.Table(table_name)

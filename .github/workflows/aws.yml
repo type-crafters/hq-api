@@ -327,6 +327,7 @@ jobs:
       - name: Create Lambda function
         if: steps.check-lambda.outputs.exists == 'false'
         run: |
+          sleep 20
           ROLE_ARN="${{ steps.check-role.outputs.role_arn || steps.create-role.outputs.role_arn }}"
           
           aws lambda create-function \
