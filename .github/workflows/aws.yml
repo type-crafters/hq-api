@@ -280,6 +280,7 @@ jobs:
           fi
 
       - name: Build environment variables
+        if: steps.check-lambda.outputs.exists == 'true'
         id: build-env
         run: |
           ENV="${{ needs.detect-changes.outputs.environment }}"
