@@ -99,7 +99,7 @@ jobs:
           if [ -z "$CHANGED_LAMBDAS" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "lambdas=[]" >> $GITHUB_OUTPUT
-            echo "ℹThere are not detected changes in Lambda Functions"
+            echo "There are not detected changes in Lambda Functions"
           # if there are changes, output them as a JSON array
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -137,7 +137,6 @@ jobs:
       - name: Set Lambda configuration
         id: config
         run: |
-
           ENV="${{ needs.detect-changes.outputs.environment }}"
           BASE_LAMBDA_NAME="hq_api_${{ matrix.lambda }}"
           
@@ -275,61 +274,96 @@ jobs:
           
           if aws lambda get-function --function-name "$LAMBDA_NAME" 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Lambda exists: $LAMBDA_NAME"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Lambda does not exist: $LAMBDA_NAME"
           fi
 
-      - name: Build environment variables
+      - name: Get current Lambda environment variables
         if: steps.check-lambda.outputs.exists == 'true'
+        id: current-env
+        run: |
+          LAMBDA_NAME="${{ steps.config.outputs.lambda_name }}"
+          
+          # Get the current environment variables from the existing Lambda
+          CURRENT_VARS=$(aws lambda get-function-configuration \
+            --function-name "$LAMBDA_NAME" \
+            --query 'Environment.Variables' \
+            --output json 2>/dev/null || echo '{}')
+          
+          # Store in output using heredoc to handle multiline JSON
+          echo "current_vars<<EOF" >> $GITHUB_OUTPUT
+          echo "$CURRENT_VARS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "📋 Current environment variables:"
+          echo "$CURRENT_VARS" | jq .
+
+      - name: Build environment variables
         id: build-env
         run: |
           ENV="${{ needs.detect-changes.outputs.environment }}"
           
-          # Base vars
-          ENV_VARS="ENV=$ENV"
+          # Build new vars as JSON object for easier comparison
+          NEW_VARS=$(jq -n \
+            --arg env "$ENV" \
+            --arg projects "${{ vars.PROJECTS_TABLE_NAME }}" \
+            --arg messages "${{ vars.MESSAGES_TABLE_NAME }}" \
+            --arg admin "${{ vars.ADMIN_USERS_TABLE_NAME }}" \
+            --arg bucket "${{ vars.BUCKET_NAME }}" \
+            --arg email "${{ vars.EMAIL_ADDRESS }}" \
+            --arg password "${{ secrets.APP_PASSWORD }}" \
+            '{
+              ENV: $env,
+              PROJECTS_TABLE_NAME: $projects,
+              MESSAGES_TABLE_NAME: $messages,
+              ADMIN_USERS_TABLE_NAME: $admin,
+              BUCKET_NAME: $bucket,
+              EMAIL_ADDRESS: $email,
+              APP_PASSWORD: $password
+            } | with_entries(select(.value != ""))')
           
-          # Add environment vars Environments → [development|production]
-          if [ -n "${{ vars.PROJECTS_TABLE_NAME }}" ]; then
-            ENV_VARS="${ENV_VARS},PROJECTS_TABLE_NAME=${{ vars.PROJECTS_TABLE_NAME }}"
+          echo "🔧 New environment variables:"
+          echo "$NEW_VARS" | jq .
+          
+          # Compare with current vars (if Lambda exists)
+          if [ "${{ steps.check-lambda.outputs.exists }}" == "true" ]; then
+            CURRENT_VARS='${{ steps.current-env.outputs.current_vars }}'
+            
+            # Remove secrets from comparison for security (we always update secrets)
+            CURRENT_NO_SECRETS=$(echo "$CURRENT_VARS" | jq 'del(.APP_PASSWORD)')
+            NEW_NO_SECRETS=$(echo "$NEW_VARS" | jq 'del(.APP_PASSWORD)')
+            
+            # Compare using sorted JSON to avoid false positives from key order
+            CURRENT_SORTED=$(echo "$CURRENT_NO_SECRETS" | jq -S .)
+            NEW_SORTED=$(echo "$NEW_NO_SECRETS" | jq -S .)
+            
+            if [ "$CURRENT_SORTED" = "$NEW_SORTED" ]; then
+              echo "vars_changed=false" >> $GITHUB_OUTPUT
+              echo "🔵 No changes in environment variables"
+            else
+              echo "vars_changed=true" >> $GITHUB_OUTPUT
+              echo "🟡 Environment variables changed:"
+              echo "--- Current"
+              echo "+++ New"
+              diff <(echo "$CURRENT_SORTED") <(echo "$NEW_SORTED") || true
+            fi
+          else
+            # New Lambda, always set vars
+            echo "vars_changed=true" >> $GITHUB_OUTPUT
+            echo "🆕 New Lambda - will set environment variables"
           fi
-
-          if [ -n "${{ vars.MESSAGES_TABLE_NAME }}" ]; then
-            ENV_VARS="${ENV_VARS},MESSAGES_TABLE_NAME=${{ vars.MESSAGES_TABLE_NAME }}"
-          fi
-
-          if [ -n "${{ vars.ADMIN_USERS_TABLE_NAME }}" ]; then
-            ENV_VARS="${ENV_VARS},ADMIN_USERS_TABLE_NAME=${{ vars.ADMIN_USERS_TABLE_NAME }}"
-          fi
           
-          if [ -n "${{ vars.BUCKET_NAME }}" ]; then
-            ENV_VARS="${ENV_VARS},BUCKET_NAME=${{ vars.BUCKET_NAME }}"
-          fi
-          
-          if [ -n "${{ vars.EMAIL_ADDRESS }}" ]; then
-            ENV_VARS="${ENV_VARS},EMAIL_ADDRESS=${{ vars.EMAIL_ADDRESS }}"
-          fi
-          
-          # if [ -n "${{ vars.LOG_LEVEL }}" ]; then
-          #   ENV_VARS="${ENV_VARS},LOG_LEVEL=${{ vars.LOG_LEVEL }}"
-          # fi
-          
-          # Add secrets
-          if [ -n "${{ secrets.APP_PASSWORD }}" ]; then
-            ENV_VARS="${ENV_VARS},APP_PASSWORD=${{ secrets.APP_PASSWORD }}"
-          fi
-          
-          # if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
-          #   ENV_VARS="${ENV_VARS},DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
-          # fi
-          
+          # Convert to Lambda format (comma-separated key=value pairs)
+          ENV_VARS=$(echo "$NEW_VARS" | jq -r 'to_entries | map("\(.key)=\(.value)") | join(",")')
           echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
-          echo "Environment variables built: $ENV_VARS"
 
       - name: Create Lambda function
         if: steps.check-lambda.outputs.exists == 'false'
         run: |
           sleep 20
-          ROLE_ARN="${{ steps.check-role.outputs.role_arn || steps.create-role.outputs.role_arn }}"
+          ROLE_ARN="${{ steps.role.outputs.role_arn }}"
           
           aws lambda create-function \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
@@ -349,7 +383,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
-            --zip-file fileb://lambda-deployment.zip \
+            --zip-file fileb://lambda-deployment.zip
           
           echo "✅ Lambda code updated: ${{ steps.config.outputs.lambda_name }}"
 
@@ -361,7 +395,7 @@ jobs:
             --function-name "${{ steps.config.outputs.lambda_name }}"
 
       - name: Update Lambda configuration
-        if: steps.check-lambda.outputs.exists == 'true'
+        if: steps.check-lambda.outputs.exists == 'true' && steps.build-env.outputs.vars_changed == 'true'
         run: |
           aws lambda update-function-configuration \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
@@ -371,7 +405,13 @@ jobs:
           
           echo "✅ Lambda configuration updated: ${{ steps.config.outputs.lambda_name }}"
 
+      - name: Skip configuration update
+        if: steps.check-lambda.outputs.exists == 'true' && steps.build-env.outputs.vars_changed == 'false'
+        run: |
+          echo "⏭️ Skipping configuration update - no changes in environment variables"
+
       - name: Wait for configuration update
+        if: steps.check-lambda.outputs.exists == 'true' && steps.build-env.outputs.vars_changed == 'true'
         run: |
           echo "⏳ Waiting for configuration update to complete..."
           aws lambda wait function-updated \
@@ -382,7 +422,39 @@ jobs:
         run: |
           VERSION=$(aws lambda publish-version \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
-            --description "Deploy ${{ matrix.lambda }} ({{ needs.detect-changes.outputs.environment }}) - ${{ github.sha }}" \
+            --description "Deploy ${{ matrix.lambda }} (${{ needs.detect-changes.outputs.environment }}) - ${{ github.sha }}" \
+            --query 'Version' \
+            --output text)
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "🎉 Published version: $VERSION" steps.build-env.outputs.vars_changed == 'true'
+        run: |
+          aws lambda update-function-configuration \
+            --function-name "${{ steps.config.outputs.lambda_name }}" \
+            --timeout 30 \
+            --memory-size 256 \
+            --environment "Variables={${{ steps.build-env.outputs.env_vars }}}"
+          
+          echo "✅ Lambda configuration updated: ${{ steps.config.outputs.lambda_name }}"
+
+      - name: Skip configuration update
+        if: steps.check-lambda.outputs.exists == 'true' && steps.build-env.outputs.vars_changed == 'false'
+        run: |
+          echo "⏭️ Skipping configuration update - no changes in environment variables"
+
+      - name: Wait for configuration update
+        if: steps.check-lambda.outputs.exists == 'true' && steps.build-env.outputs.vars_changed == 'true'
+        run: |
+          echo "⏳ Waiting for configuration update to complete..."
+          aws lambda wait function-updated \
+            --function-name "${{ steps.config.outputs.lambda_name }}"
+
+      - name: Publish version
+        id: publish
+        run: |
+          VERSION=$(aws lambda publish-version \
+            --function-name "${{ steps.config.outputs.lambda_name }}" \
+            --description "Deploy ${{ matrix.lambda }} (${{ needs.detect-changes.outputs.environment }}) - ${{ github.sha }}" \
             --query 'Version' \
             --output text)
           
@@ -391,7 +463,15 @@ jobs:
 
       - name: Summary
         run: |
-          ENV="${{ steps.config.outputs.environment == 'production' }}" # && '🚀' || '🔧' }}"
+          # Determine if environment variables were updated or not
+          VARS_STATUS="${{ steps.build-env.outputs.vars_changed }}"
+          if [ "$VARS_STATUS" == "true" ]; then
+            VARS_EMOJI="🟡"
+            VARS_TEXT="Updated"
+          else
+            VARS_EMOJI="🔵"
+            VARS_TEXT="Unchanged"
+          fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
@@ -401,6 +481,7 @@ jobs:
           echo "| **Version** | \`${{ steps.publish.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Runtime** | \`python${{ env.LAMBDA_RUNTIME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Path** | \`${{ steps.config.outputs.lambda_path }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Env Vars** | $VARS_EMOJI \`$VARS_TEXT\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
   # comment-on-pr:
