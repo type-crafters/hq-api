@@ -99,7 +99,7 @@ jobs:
           if [ -z "$CHANGED_LAMBDAS" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "lambdas=[]" >> $GITHUB_OUTPUT
-            echo "There are not detected changes in Lambda Functions"
+            echo "ℹ️ There are not detected changes in Lambda Functions"
           # if there are changes, output them as a JSON array
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
@@ -418,7 +418,7 @@ jobs:
             --function-name "${{ steps.config.outputs.lambda_name }}"
 
       - name: Publish version
-        id: publish
+        id: publish-version
         run: |
           VERSION=$(aws lambda publish-version \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
@@ -428,7 +428,7 @@ jobs:
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "🎉 Published version: $VERSION" steps.build-env.outputs.vars_changed == 'true'
-
+          
           aws lambda update-function-configuration \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
             --timeout 30 \
@@ -478,7 +478,7 @@ jobs:
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ ${{ steps.config.outputs.lambda_name }}" >> $GITHUB_STEP_SUMMARY
           echo "| **Environment** | \`${{ needs.detect-changes.outputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Version** | \`${{ steps.publish.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ steps.publish-version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Runtime** | \`python${{ env.LAMBDA_RUNTIME }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Path** | \`${{ steps.config.outputs.lambda_path }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Env Vars** | $VARS_EMOJI \`$VARS_TEXT\` |" >> $GITHUB_STEP_SUMMARY
