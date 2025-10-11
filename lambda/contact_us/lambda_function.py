@@ -12,6 +12,7 @@ table = db.Table(table_name)
 # Lambda handler 'contact_us'
 def lambda_handler(event, context):
     try:
+        
         # Parse request body
         body = json.loads(event.get('body', '{}'))
         

@@ -428,7 +428,7 @@ jobs:
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "🎉 Published version: $VERSION" steps.build-env.outputs.vars_changed == 'true'
-        run: |
+
           aws lambda update-function-configuration \
             --function-name "${{ steps.config.outputs.lambda_name }}" \
             --timeout 30 \
