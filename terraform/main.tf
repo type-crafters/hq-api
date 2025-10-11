@@ -24,9 +24,11 @@ locals {
 
   lambda_env = {
     for f in local.lambda_src :
-    f => { for line in split("\n", file("${var.lambda_path}/${f}/.env")) :
-      split("=", line)[0] => split("=", line)[1] if length(split("=", line)) == 2
-    }
+    f => (fileexists("${var.lambda_path}/${f}/.env") ?
+      { for line in split("\n", file("${var.lambda_path}/${f}/.env")) :
+        split("=", line)[0] => split("=", line)[1] if length(split("=", line)) == 2
+      } : {}
+    )
   }
 }
 
@@ -57,12 +59,29 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Attach additional required policies, as declared by the policies array of service.yml
+resource "aws_iam_role_policy_attachment" "additional_policies" {
+  for_each = merge([
+    for lambda, config in local.lambda_config : {
+      for policy in lookup(config, "policies", []) :
+      "${lambda}:${policy}" => {
+        lambda = lambda
+        policy = policy
+      }
+      if contains(keys(var.policies), policy)
+    }
+  ]...)
+
+  role       = aws_iam_role.exec_role[each.value.lambda].name
+  policy_arn = var.policies[each.value.policy]
+}
+
 # Compress each lambda function into a .zip file in dist/
 data "archive_file" "lambda_zip" {
   for_each = { for f in local.lambda_src : f => f }
 
-  type        = "zip"
-  source_dir  = "${var.lambda_path}/${each.key}"
+  type       = "zip"
+  source_dir = "${var.lambda_path}/${each.key}"
 
   excludes = [".env", "service.yml", "requirements.txt", ".venv"]
 
@@ -74,7 +93,7 @@ resource "aws_lambda_function" "lambda" {
   for_each = data.archive_file.lambda_zip
 
   function_name = each.key
-  description = "[${replace(timestamp(), "[T]", " ")}] Terraform-generated Lambda function ${each.key}"
+  description   = "[${replace(timestamp(), "T", " ")}] Terraform-generated Lambda function ${each.key}"
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.13"
   role          = aws_iam_role.exec_role[each.key].arn
