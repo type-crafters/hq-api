@@ -1,5 +1,5 @@
-path: "/projects/{id}"
-method: "DELETE"
+path: /projects/{id}
+method: DELETE
 policies:
   - HQDynamoAccess
   - HQObjectAccess

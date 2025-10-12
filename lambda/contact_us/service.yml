@@ -1,4 +1,4 @@
-path: /users/create
+path: /contact
 method: POST
 policies:
   - HQDynamoAccess

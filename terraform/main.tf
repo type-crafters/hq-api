@@ -103,10 +103,23 @@ resource "aws_lambda_function" "lambda" {
   }
 }
 
+
 # Create the ApiGatewayV2 HTTP API
 resource "aws_apigatewayv2_api" "hq-api" {
   name          = "hq-api"
   protocol_type = "HTTP"
+}
+
+# Add invoke pemission to all lambdas for API Gateway
+resource "aws_lambda_permission" "api_invoke" {
+  for_each = aws_lambda_function.lambda
+
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = each.value.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.hq-api.execution_arn}/*/*"
 }
 
 # Create a Lambda Function integration for each route
@@ -129,4 +142,33 @@ resource "aws_apigatewayv2_route" "api_route" {
 
 
   target = "integrations/${aws_apigatewayv2_integration.lambda_integration[each.key].id}"
+}
+
+# Create an ApiGatewayV2 deployment resource
+resource "aws_apigatewayv2_deployment" "hq_api_deployment" {
+  api_id = aws_apigatewayv2_api.hq-api.id
+
+  triggers = {
+    redeployment = sha1(jsonencode({
+      routes       = aws_apigatewayv2_route.api_route
+      integrations = aws_apigatewayv2_integration.lambda_integration
+    }))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Add the $default stage to the deployment
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.hq-api.id
+  name        = "$default"
+  auto_deploy = true
+
+  deployment_id = aws_apigatewayv2_deployment.hq_api_deployment.id
+}
+
+output "api_endpoint" {
+  value = aws_apigatewayv2_stage.default.invoke_url
 }
