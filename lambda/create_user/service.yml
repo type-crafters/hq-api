@@ -1,0 +1,4 @@
+path: "/users"
+method: "POST"
+policies:
+  - HQDynamoAccess

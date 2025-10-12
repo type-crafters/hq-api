@@ -1,0 +1,5 @@
+path: "/projects"
+method: "POST"
+policies:
+  - HQDynamoAccess
+  - HQObjectAccess

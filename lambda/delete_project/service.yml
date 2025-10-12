@@ -1,0 +1,5 @@
+path: "/projects/{id}"
+method: "DELETE"
+policies:
+  - HQDynamoAccess
+  - HQObjectAccess
